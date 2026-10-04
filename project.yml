@@ -1,0 +1,58 @@
+name: NTFSMate
+options:
+  bundleIdPrefix: com.ntfsmate
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    # Intel-only: this architecture leans on the legacy macFUSE kext path,
+    # which Apple only still permits on x86_64. Do not add arm64 here.
+    ARCHS: "x86_64"
+    ONLY_ACTIVE_ARCH: NO
+
+targets:
+  NTFSMate:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/NTFSMateApp
+      - path: Sources/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ntfsmate.app
+        INFOPLIST_FILE: Sources/NTFSMateApp/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/NTFSMateApp/NTFSMate.entitlements
+        LSUIElement: YES
+    dependencies:
+      - target: NTFSHelper
+        embed: false
+    postCompileScripts:
+      - script: |
+          # Embeds the privileged helper + its launchd plist into the app
+          # bundle at the paths SMAppService.daemon(plistName:) expects:
+          #   Contents/Library/LaunchDaemons/com.ntfsmate.helper.plist
+          #   Contents/MacOS/NTFSHelper
+          set -e
+          DAEMONS_DIR="$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchDaemons"
+          mkdir -p "$DAEMONS_DIR"
+          cp "$BUILT_PRODUCTS_DIR/NTFSHelper" "$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/NTFSHelper"
+          cp "$SRCROOT/Sources/NTFSHelper/Resources/com.ntfsmate.helper.plist" "$DAEMONS_DIR/com.ntfsmate.helper.plist"
+        name: "Embed Privileged Helper"
+        basedOnDependencyAnalysis: false
+
+  NTFSHelper:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Sources/NTFSHelper
+      - path: Sources/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ntfsmate.helper
+        INFOPLIST_FILE: Sources/NTFSHelper/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/NTFSHelper/NTFSHelper.entitlements
+        SKIP_INSTALL: NO
