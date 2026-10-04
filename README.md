@@ -60,14 +60,44 @@ lo que realmente vende Paragon). Si en el futuro se necesita más velocidad, las
 opciones son: (a) un driver NTFS comercial con licencia (Tuxera), o (b) escribir un
 driver propio — ambas son inversiones de ingeniería serias, no algo incremental.
 
-## Licenciamiento — importante
+## Driver nativo (FSKit) — en progreso
 
-`ntfs-3g` es **GPLv2**. Este proyecto no lo empaqueta dentro del `.app` — el
-usuario lo instala por separado vía Homebrew (`Scripts/install-dependencies.sh`)
-y NTFSMate simplemente invoca los binarios ya instalados en el sistema. Esto evita
-convertir NTFSMate en una obra derivada de GPL. **No cambies esto a "bundlear
-ntfs-3g dentro del .app"** sin antes resolver el cumplimiento de la licencia
-(distribución del código fuente correspondiente, etc.) con un abogado.
+`Sources/NTFSFSExtension/` arranca una segunda vía, paralela a la de FUSE/kext:
+un módulo **FSKit** (el framework de Apple para filesystems de terceros en user
+space, sin kext) que enlaza `libntfs-3g` **directo en el proceso de la
+extensión** — sin el daemon FUSE, sin el hop extra de IPC que tiene macFUSE.
+Es la única forma de que un filesystem de terceros en macOS se acerque al
+rendimiento de un driver nativo sin escribir el parser de NTFS desde cero.
+
+**Bloqueos reales antes de que esto corra, en orden:**
+
+1. **`com.apple.developer.fskit.fsmodule` es un entitlement restringido.**
+   Apple lo aprueba caso por caso vía perfil de aprovisionamiento — no es
+   autoservicio como el resto de entitlements de este proyecto. Hay que
+   solicitarlo en el portal de Apple Developer con una cuenta de pago antes
+   de poder firmar y correr esto fuera de un entorno de desarrollo local.
+2. **El target real se crea en Xcode, no a mano.** FSKit usa ExtensionKit
+   (tecnología de appex moderna), y su Info.plist/entitlements wiring exacto
+   no está en `project.yml` todavía a propósito — créalo con
+   `File ▸ New ▸ Target ▸ macOS ▸ File System Extension` (Xcode 16.3+) y
+   después reemplaza los archivos Swift que genere por los que ya están en
+   `Sources/NTFSFSExtension/`.
+3. **Varias firmas de API en `NTFSVolume.swift`/`NTFSEngine.swift` están
+   marcadas `TODO`** (cómo se obtiene el BSD device path de un
+   `FSBlockDeviceResource`, cómo se resuelve un `FSItem` a una ruta). FSKit es
+   demasiado nuevo para confiar en nombres exactos sin el autocomplete real de
+   Xcode — verifica esos puntos ahí antes de asumir que compila.
+
+**Licenciamiento — esto cambia la exposición legal.** `ntfs-3g` es GPLv2. En
+la app principal (`NTFSHelper`/macFUSE) solo se *invoca* el binario ya
+instalado por el usuario — eso no genera obra derivada. En `NTFSFSExtension`,
+en cambio, **se enlaza `libntfs-3g` directo en el binario de la extensión**
+(decisión tomada a propósito por rendimiento). Eso sí convierte el binario de
+esa extensión en obra derivada de GPLv2: si distribuyes `NTFSMate.app` con
+esta extensión compilada adentro, estás obligado a liberar el código fuente
+correspondiente de esa extensión bajo GPL (no necesariamente el resto de la
+app, pero sí esa pieza). Resuelve esto con un abogado antes de notarizar o
+distribuir un build que incluya `NTFSFSExtension`.
 
 ## Compilar
 
@@ -92,3 +122,7 @@ Al compilar y correr por primera vez, macOS pedirá aprobar el daemon
   de progreso).
 - Manejo de desconexión abrupta durante escritura (unmount forzado / fsck).
 - Tests. No hay ninguno todavía.
+- Driver nativo FSKit: solicitud del entitlement restringido a Apple, crear el
+  target real en Xcode, resolver los `TODO` de API marcados en
+  `Sources/NTFSFSExtension/`, y la decisión legal de licenciamiento GPL antes
+  de distribuirlo (ver sección "Driver nativo" arriba).
