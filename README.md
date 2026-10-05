@@ -12,6 +12,13 @@ prueba por ahora. Si más adelante se necesita Ventura de nuevo, basta con bajar
 `MACOSX_DEPLOYMENT_TARGET` en `project.yml` y `LSMinimumSystemVersion` en el
 Info.plist de la app — no hay refactor de código de por medio.
 
+**Uso: personal, no comercial.** Esto no se va a distribuir a terceros, solo
+corre en la(s) Mac del propio desarrollador. Eso resuelve de raíz el problema
+de licencia GPL de `ntfs-3g` (ver sección "Driver nativo" más abajo). **No**
+resuelve el entitlement restringido de FSKit ni la necesidad de firmar con
+Developer ID — esas son políticas de Apple sobre qué puede cargar en tu propia
+Mac, no sobre a quién le entregas el software.
+
 ## Arquitectura
 
 ```
@@ -73,9 +80,12 @@ rendimiento de un driver nativo sin escribir el parser de NTFS desde cero.
 
 1. **`com.apple.developer.fskit.fsmodule` es un entitlement restringido.**
    Apple lo aprueba caso por caso vía perfil de aprovisionamiento — no es
-   autoservicio como el resto de entitlements de este proyecto. Hay que
-   solicitarlo en el portal de Apple Developer con una cuenta de pago antes
-   de poder firmar y correr esto fuera de un entorno de desarrollo local.
+   autoservicio como el resto de entitlements de este proyecto, y esto aplica
+   igual aunque el uso sea 100% personal: es Apple controlando qué puede
+   cargar en una Mac, no una restricción de distribución. Necesitas una cuenta
+   de Apple Developer de pago ($99/año — la gratuita no suele calificar para
+   entitlements restringidos) y solicitarlo ahí antes de poder firmar y
+   correr esto, incluso solo en tu propia máquina.
 2. **El target real se crea en Xcode, no a mano.** FSKit usa ExtensionKit
    (tecnología de appex moderna), y su Info.plist/entitlements wiring exacto
    no está en `project.yml` todavía a propósito — créalo con
@@ -88,16 +98,16 @@ rendimiento de un driver nativo sin escribir el parser de NTFS desde cero.
    demasiado nuevo para confiar en nombres exactos sin el autocomplete real de
    Xcode — verifica esos puntos ahí antes de asumir que compila.
 
-**Licenciamiento — esto cambia la exposición legal.** `ntfs-3g` es GPLv2. En
-la app principal (`NTFSHelper`/macFUSE) solo se *invoca* el binario ya
-instalado por el usuario — eso no genera obra derivada. En `NTFSFSExtension`,
-en cambio, **se enlaza `libntfs-3g` directo en el binario de la extensión**
-(decisión tomada a propósito por rendimiento). Eso sí convierte el binario de
-esa extensión en obra derivada de GPLv2: si distribuyes `NTFSMate.app` con
-esta extensión compilada adentro, estás obligado a liberar el código fuente
-correspondiente de esa extensión bajo GPL (no necesariamente el resto de la
-app, pero sí esa pieza). Resuelve esto con un abogado antes de notarizar o
-distribuir un build que incluya `NTFSFSExtension`.
+**Licenciamiento.** `ntfs-3g` es GPLv2. En `NTFSFSExtension` se enlaza
+`libntfs-3g` directo en el binario de la extensión (decisión tomada a
+propósito por rendimiento), lo que normalmente convertiría ese binario en
+obra derivada de GPLv2 con obligación de liberar su código fuente — **pero
+esa obligación solo se activa al distribuir el binario a un tercero.** Para
+uso estrictamente personal (compilas, firmas y corres en tu propia Mac, no
+lo compartes ni lo publicas) no hay distribución, así que no hay obligación
+de liberar nada. Si esto cambia en el futuro — le das el `.app` a alguien
+más, lo subes a algún lado — esa decisión vuelve a estar sobre la mesa y
+hay que revisarla de nuevo antes de hacerlo.
 
 ## Compilar
 
