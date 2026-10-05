@@ -9,8 +9,16 @@ final class MenuBarController {
     private var mainWindowController: MainWindowController?
 
     init() {
+        NSLog("NTFSMate: MenuBarController starting up")
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "externaldrive.connected.to.line.below", accessibilityDescription: "NTFSMate")
+        if let icon = NSImage(systemSymbolName: "externaldrive.fill", accessibilityDescription: "NTFSMate") {
+            statusItem.button?.image = icon
+        } else {
+            // Guaranteed-visible fallback — better an ugly text label than an
+            // empty, easy-to-miss status item if the SF Symbol fails to load.
+            NSLog("NTFSMate: SF Symbol failed to load, falling back to text title")
+            statusItem.button?.title = "NTFS"
+        }
         statusItem.button?.action = #selector(togglePopover)
         statusItem.button?.target = self
 
