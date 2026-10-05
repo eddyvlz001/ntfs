@@ -3,6 +3,27 @@ import Foundation
 
 final class DriveListModel: ObservableObject, USBMonitorDelegate {
     @Published var drives: [DriveInfo] = []
+    @Published var helperDiagnosis: String?
+    @Published var toolsMissing = false
+    @Published var alertMessage: String?
+
+    /// Called on init and every time the popover opens — status can change
+    /// behind the app's back (e.g. the user approves the helper while the
+    /// app is already running).
+    func refreshDiagnostics() {
+        helperDiagnosis = NTFSManager.shared.helperDiagnosis()
+        guard helperDiagnosis == nil else {
+            toolsMissing = false
+            return
+        }
+        NTFSManager.shared.checkToolsInstalled { [weak self] installed in
+            self?.toolsMissing = !installed
+        }
+    }
+
+    func openLoginItemsSettings() {
+        NTFSManager.shared.openLoginItemsSettings()
+    }
 
     func usbMonitor(_ monitor: USBMonitor, driveAppeared drive: DriveInfo) {
         if let index = drives.firstIndex(where: { $0.bsdName == drive.bsdName }) {
@@ -23,13 +44,14 @@ final class DriveListModel: ObservableObject, USBMonitorDelegate {
     }
 
     func formatAsNTFS(_ drive: DriveInfo) {
+        refreshDiagnostics()
         updateState(drive.bsdName, to: .formatting)
         NTFSManager.shared.format(drive: drive, volumeName: drive.volumeName) { [weak self] result in
             switch result {
             case .success:
                 self?.mount(drive)
             case .failure(let error):
-                self?.updateState(drive.bsdName, to: .failed(error.localizedDescription))
+                self?.fail(drive.bsdName, error)
             }
         }
     }
@@ -41,7 +63,7 @@ final class DriveListModel: ObservableObject, USBMonitorDelegate {
             case .success(let path):
                 self?.updateState(drive.bsdName, to: .mounted(path: path))
             case .failure(let error):
-                self?.updateState(drive.bsdName, to: .failed(error.localizedDescription))
+                self?.fail(drive.bsdName, error)
             }
         }
     }
@@ -53,9 +75,14 @@ final class DriveListModel: ObservableObject, USBMonitorDelegate {
             case .success:
                 self?.updateState(drive.bsdName, to: .unmounted)
             case .failure(let error):
-                self?.updateState(drive.bsdName, to: .failed(error.localizedDescription))
+                self?.fail(drive.bsdName, error)
             }
         }
+    }
+
+    private func fail(_ bsdName: String, _ error: Error) {
+        updateState(bsdName, to: .failed(error.localizedDescription))
+        alertMessage = error.localizedDescription
     }
 
     private func updateState(_ bsdName: String, to state: DriveInfo.MountState) {

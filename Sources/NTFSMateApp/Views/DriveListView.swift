@@ -5,8 +5,38 @@ struct DriveListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("NTFSMate").font(.headline).padding(12)
+            HStack {
+                Text("NTFSMate").font(.headline)
+                Spacer()
+                Button {
+                    model.refreshDiagnostics()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.plain)
+                .help("Volver a comprobar el servicio y las herramientas")
+            }
+            .padding(12)
             Divider()
+
+            if let diagnosis = model.helperDiagnosis {
+                DiagnosisBanner(
+                    icon: "exclamationmark.triangle.fill",
+                    message: diagnosis,
+                    actionTitle: "Abrir Ajustes del Sistema"
+                ) {
+                    model.openLoginItemsSettings()
+                }
+                Divider()
+            } else if model.toolsMissing {
+                DiagnosisBanner(
+                    icon: "exclamationmark.triangle.fill",
+                    message: "Falta macFUSE y/o ntfs-3g. Corre Scripts/install-dependencies.sh en una Terminal y vuelve a intentar.",
+                    actionTitle: nil,
+                    action: nil
+                )
+                Divider()
+            }
 
             if model.drives.isEmpty {
                 Text("Sin unidades USB conectadas")
@@ -22,7 +52,39 @@ struct DriveListView: View {
             Button("Salir") { NSApp.terminate(nil) }
                 .padding(12)
         }
-        .frame(width: 320)
+        .frame(width: 340)
+        .alert(
+            "Error",
+            isPresented: Binding(
+                get: { model.alertMessage != nil },
+                set: { if !$0 { model.alertMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { model.alertMessage = nil }
+        } message: {
+            Text(model.alertMessage ?? "")
+        }
+    }
+}
+
+private struct DiagnosisBanner: View {
+    let icon: String
+    let message: String
+    let actionTitle: String?
+    var action: (() -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: icon).foregroundStyle(.orange)
+                Text(message).font(.caption)
+            }
+            if let actionTitle, let action {
+                Button(actionTitle, action: action).font(.caption)
+            }
+        }
+        .padding(12)
+        .background(Color.orange.opacity(0.1))
     }
 }
 
@@ -37,19 +99,24 @@ private struct DriveRow: View {
                 Spacer()
                 Text(drive.sizeDescription).foregroundStyle(.secondary).font(.caption)
             }
-            Text(statusText).font(.caption).foregroundStyle(.secondary)
+            Text(statusText).font(.caption).foregroundStyle(statusColor)
 
             HStack {
                 switch drive.fileSystem {
                 case .unformatted, .other:
                     Button("Formatear como NTFS") { model.formatAsNTFS(drive) }
+                        .disabled(isBusy)
                 case .ntfs:
                     switch drive.state {
                     case .mounted:
                         Button("Expulsar") { model.unmount(drive) }
                     default:
                         Button("Montar") { model.mount(drive) }
+                            .disabled(isBusy)
                     }
+                }
+                if isBusy {
+                    ProgressView().controlSize(.small).padding(.leading, 4)
                 }
             }
             .font(.caption)
@@ -57,12 +124,24 @@ private struct DriveRow: View {
         .padding(12)
     }
 
+    private var isBusy: Bool {
+        switch drive.state {
+        case .formatting, .mounting: return true
+        default: return false
+        }
+    }
+
+    private var statusColor: Color {
+        if case .failed = drive.state { return .red }
+        return .secondary
+    }
+
     private var statusText: String {
         switch drive.state {
         case .unmounted: return "Desmontada"
         case .mounting: return "Montando…"
         case .mounted(let path): return "Montada en \(path)"
-        case .formatting: return "Formateando…"
+        case .formatting: return "Formateando… esto puede tardar varios minutos"
         case .failed(let message): return "Error: \(message)"
         }
     }

@@ -39,9 +39,34 @@ final class NTFSManager {
         }
     }
 
+    /// Human-readable diagnosis of why format/mount might silently do
+    /// nothing. nil means the helper is enabled and ready.
+    func helperDiagnosis() -> String? {
+        switch SMAppService.daemon(plistName: "com.ntfsmate.helper.plist").status {
+        case .enabled:
+            return nil
+        case .requiresApproval:
+            return "NTFSMate necesita tu aprobación para el servicio NTFSHelper. Ábrela en Ajustes del Sistema → General → Elementos de inicio."
+        case .notRegistered:
+            return "El servicio NTFSHelper no está registrado. Cierra y vuelve a abrir NTFSMate."
+        case .notFound:
+            return "No se encontró NTFSHelper en el paquete de la app — revisa que el build lo incluya (ver 'Embed Privileged Helper' en project.yml)."
+        @unknown default:
+            return "Estado desconocido del servicio NTFSHelper."
+        }
+    }
+
+    func openLoginItemsSettings() {
+        SMAppService.openSystemSettingsLoginItems()
+    }
+
     func checkToolsInstalled(completion: @escaping (Bool) -> Void) {
         proxy { helper in
-            helper?.toolPaths { paths in
+            guard let helper else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            helper.toolPaths { paths in
                 DispatchQueue.main.async {
                     completion(paths["mkntfs"] != nil && paths["ntfs-3g"] != nil)
                 }

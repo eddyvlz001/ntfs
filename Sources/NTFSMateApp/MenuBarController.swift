@@ -18,6 +18,7 @@ final class MenuBarController {
 
         usbMonitor.delegate = model
         usbMonitor.start()
+        model.refreshDiagnostics()
     }
 
     @objc private func togglePopover() {
@@ -25,6 +26,7 @@ final class MenuBarController {
         if popover.isShown {
             popover.performClose(nil)
         } else {
+            model.refreshDiagnostics()
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
     }
