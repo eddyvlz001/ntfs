@@ -27,4 +27,22 @@ struct DriveInfo: Identifiable, Equatable {
     var sizeDescription: String {
         ByteCountFormatter.string(fromByteCount: Int64(sizeBytes), countStyle: .file)
     }
+
+    var fileSystemLabel: String {
+        switch fileSystem {
+        case .ntfs: return "NTFS"
+        case .unformatted: return "Sin formato"
+        case .other(let kind): return kind.uppercased()
+        }
+    }
+
+    var statusLabel: String {
+        switch state {
+        case .unmounted: return "Desmontada"
+        case .mounting: return "Montando…"
+        case .mounted(let path): return "Montada en \(path)"
+        case .formatting: return "Formateando… esto puede tardar varios minutos"
+        case .failed(let message): return "Error: \(message)"
+        }
+    }
 }

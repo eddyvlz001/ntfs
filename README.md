@@ -51,6 +51,20 @@ de commits de este repo si se quiere retomar más adelante.)
   sin usar la API legacy `SMJobBless`). La app nunca ejecuta comandos de disco
   directamente; todo pasa por XPC al helper que corre como root.
 
+## Interfaz
+
+Dos superficies, como Paragon NTFS for Mac:
+
+- **Popover de la barra de menú** (`DriveListView`) — acceso rápido: lista las
+  unidades conectadas, banner de diagnóstico si el helper/herramientas no
+  están listos, y botones de montar/formatear/expulsar por unidad.
+- **Ventana principal** (`MainWindowView`, botón "Abrir ventana principal" en
+  el popover) — sidebar con todas las unidades a la izquierda, panel de
+  detalle a la derecha (sistema de archivos, tamaño, dispositivo, estado,
+  acciones). La app corre como accesorio de barra de menú (sin ícono en el
+  Dock) y solo cambia a app regular con ícono en Dock mientras esta ventana
+  está abierta — se revierte al cerrarla (`MainWindowController`).
+
 ## Rendimiento de transferencia
 
 Las opciones de montaje en `HelperDelegate.mountNTFS` (`kernel_cache,auto_cache,

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DriveListView: View {
     @ObservedObject var model: DriveListModel
+    var onOpenMainWindow: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -49,8 +50,13 @@ struct DriveListView: View {
                 }
             }
 
-            Button("Salir") { NSApp.terminate(nil) }
-                .padding(12)
+            Divider()
+            HStack {
+                Button("Abrir ventana principal") { onOpenMainWindow() }
+                Spacer()
+                Button("Salir") { NSApp.terminate(nil) }
+            }
+            .padding(12)
         }
         .frame(width: 340)
         .alert(
@@ -99,7 +105,7 @@ private struct DriveRow: View {
                 Spacer()
                 Text(drive.sizeDescription).foregroundStyle(.secondary).font(.caption)
             }
-            Text(statusText).font(.caption).foregroundStyle(statusColor)
+            Text(drive.statusLabel).font(.caption).foregroundStyle(statusColor)
 
             HStack {
                 switch drive.fileSystem {
@@ -134,15 +140,5 @@ private struct DriveRow: View {
     private var statusColor: Color {
         if case .failed = drive.state { return .red }
         return .secondary
-    }
-
-    private var statusText: String {
-        switch drive.state {
-        case .unmounted: return "Desmontada"
-        case .mounting: return "Montando…"
-        case .mounted(let path): return "Montada en \(path)"
-        case .formatting: return "Formateando… esto puede tardar varios minutos"
-        case .failed(let message): return "Error: \(message)"
-        }
     }
 }
