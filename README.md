@@ -76,15 +76,61 @@ driver propio — ambas son inversiones de ingeniería serias, no algo increment
 Requiere macOS Intel + Xcode. Este scaffold no se puede compilar ni probar desde
 este contenedor Linux — fue escrito aquí, pero el build real debe hacerse en el Mac.
 
+### 1. Clonar e instalar dependencias
+
+```sh
+git clone -b claude/vibrant-maxwell-xw0bpd https://github.com/eddyvlz001/ntfs.git
+cd ntfs
+./Scripts/install-dependencies.sh   # macFUSE + ntfs-3g
+```
+
+Apple bloquea el kext de macFUSE la primera vez — es normal: ve a
+**Ajustes del Sistema → Privacidad y Seguridad**, busca el aviso de software
+de un desarrollador bloqueado y dale **Permitir**. Puede pedir reiniciar.
+
+### 2. Generar y abrir el proyecto
+
 ```sh
 brew install xcodegen
-./Scripts/install-dependencies.sh   # macFUSE + ntfs-3g
 xcodegen generate
 open NTFSMate.xcodeproj
 ```
 
-Al compilar y correr por primera vez, macOS pedirá aprobar el daemon
-`NTFSHelper` en Ajustes del Sistema > Privacidad y Seguridad.
+### 3. Firmar con tu Apple ID gratuito
+
+En Xcode, para **ambos** targets (`NTFSMate` y `NTFSHelper`) en
+*Signing & Capabilities*: marca "Automatically manage signing" y elige tu
+Apple ID como Team (si no aparece, agrégalo en Xcode → Settings → Accounts;
+se crea un "Personal Team" sin costo). **Los dos targets deben quedar con el
+mismo Team ID** — es requisito de `SMAppService` para que reconozca al helper
+como del mismo desarrollador que la app.
+
+### 4. Compilar y correr
+
+`Cmd+R`. Al registrar el helper privilegiado por primera vez, macOS pedirá
+aprobarlo en Ajustes del Sistema > Privacidad y Seguridad.
+
+### 5. Probar con una USB real
+
+Conéctala — debe aparecer de inmediato en el popover de la barra de menú. Si
+no tiene NTFS, aparece el botón "Formatear como NTFS"; si ya lo es, se monta
+sola.
+
+### 6. Medir velocidad real
+
+Con la unidad montada en `/Volumes/<nombre>`:
+
+```sh
+# Escritura
+dd if=/dev/zero of=/Volumes/<nombre>/test.bin bs=1m count=2048
+
+# Lectura (usa un archivo bastante más grande que tu RAM para que no lo
+# sirva desde caché)
+dd if=/Volumes/<nombre>/test.bin of=/dev/null bs=1m
+```
+
+Los MB/s que reporte cada `dd` al final son el número real contra el que hay
+que comparar cualquier requisito de velocidad mínima.
 
 ## Qué falta para producción (no cubierto en este scaffold)
 
