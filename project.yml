@@ -2,13 +2,13 @@ name: NTFSMate
 options:
   bundleIdPrefix: com.ntfsmate
   deploymentTarget:
-    macOS: "15.0"
+    macOS: "13.0"
   createIntermediateGroups: true
 
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
     # Intel-only: this architecture leans on the legacy macFUSE kext path,
     # which Apple only still permits on x86_64. Do not add arm64 here.
     ARCHS: "x86_64"

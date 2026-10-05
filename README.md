@@ -4,13 +4,10 @@ Utilidad de barra de menú para macOS (Intel) que detecta USBs al instante,
 formatea como NTFS y monta con lectura/escritura a la máxima velocidad que
 permite el stack open-source disponible en macOS.
 
-**Target declarado: macOS Sequoia (15.0+).** La arquitectura (FUSE/kext +
-`SMAppService`) no usa ninguna API exclusiva de Sequoia — en principio corre
-igual en Ventura/Sonoma — pero el deployment target y `LSMinimumSystemVersion`
-están fijados en 15.0 porque es el único macOS que este proyecto garantiza y
-prueba por ahora. Si más adelante se necesita Ventura de nuevo, basta con bajar
-`MACOSX_DEPLOYMENT_TARGET` en `project.yml` y `LSMinimumSystemVersion` en el
-Info.plist de la app — no hay refactor de código de por medio.
+**Target declarado: macOS Ventura (13.0) en adelante** — cubre Ventura, Sonoma,
+Sequoia y Tahoe con el mismo build. La arquitectura (FUSE/kext +
+`SMAppService`, disponible desde macOS 13) no usa ninguna API exclusiva de
+una versión más nueva, así que no hace falta mantener builds separados por OS.
 
 **Uso: personal, no comercial, sin cuenta de pago.** Esto no se va a distribuir
 a terceros, solo corre en la(s) Mac del propio desarrollador. Por eso la
